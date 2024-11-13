@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOv8로 토마토 수확시기 찾기</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url("{{ url_for('static', filename='assets/images/tomato_back.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: inherit;
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px);
+            z-index: -1;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            padding: 50px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 1;
+        }
+        button {
+            margin-top:15px;
+            padding: 10px 20px;
+            background-color: #d27878;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* 버튼 사이 간격 */
+            margin-top: 20px;
+        }
+        .button-container button {
+            padding: 10px 20px;
+            width: 120px;
+            height: 40px;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            background-color: #d27878;
+            border: none;
+        }
+        .button-container button:hover {
+            background-color: #587b5e;
+        }
+        .button-container a {
+            color: white;
+            text-decoration: none;
+        }
+        /* 로딩 화면 스타일 */
+        #loading {
+            display: none; /* 페이지 로드시 숨김 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <!-- 로딩 화면 -->
+    <div id="loading" style="display: none;">로딩 중입니다...</div>
+
+    <div class="container">
+        <h1>YOLOv8 토마토 성장 판별</h1>
+
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label>이미지나 동영상을 업로드하세요:</label><br><br>
+            <input type="file" name="file" id="fileInput" accept="image/*,video/*">
+            
+            <!-- 버튼 컨테이너 -->
+            <div class="button-container">
+                <button type="submit">업로드 및 분석</button>
+                <button type="button"><a href="{{ url_for('index') }}">홈으로</a></button>
+            </div>
+        </form>
+    </div>
+
+    <!-- AJAX와 로딩 화면 제어 스크립트 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#uploadForm').on('submit', function(event) {
+                event.preventDefault();
+
+                // 파일이 동영상일 때만 로딩 화면 표시
+                var fileInput = $('#fileInput')[0];
+                var file = fileInput.files[0];
+                var isVideo = file && file.type.startsWith('video');
+                
+                if (isVideo) {
+                    $('#loading').css('display', 'flex');
+                }
+
+                // AJAX 요청으로 파일 업로드 및 처리
+                var formData = new FormData(this);
+                $.ajax({
+                    url: '/predict',  // Flask 라우트 URL
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        // 로딩 화면 숨기기 및 결과 페이지 로드
+                        $('#loading').hide();
+                        $('body').html(response); // 응답 결과를 HTML에 렌더링
+                    },
+                    error: function() {
+                        // 오류 시 로딩 화면 숨기기
+                        $('#loading').hide();
+                        alert('파일 처리 중 오류가 발생했습니다. 파일을 확인해 주세요');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
